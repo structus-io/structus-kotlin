@@ -1,0 +1,98 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build and Publish Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Get version from gradle.properties
+        id: get_version
+        run: |
+          VERSION=$(grep '^version=' gradle.properties | cut -d'=' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Override version for manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          sed -i "s/^version=.*/version=${{ github.event.inputs.version }}/" gradle.properties
+          echo "Overridden version to: ${{ github.event.inputs.version }}"
+
+      - name: Build library
+        run: ./gradlew clean build --no-daemon --stacktrace
+
+      - name: Run tests with coverage
+        run: ./gradlew test jacocoTestReport --no-daemon
+
+      - name: Publish to GitHub Packages
+        run: ./gradlew publish --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-artifacts-${{ steps.get_version.outputs.version }}
+          path: |
+            lib/build/libs/*.jar
+          retention-days: 90
+
+      - name: Create publish summary
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "## 📦 Artifacts Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Group:** com.melsardes.libraries" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifact:** structus-kotlin" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** GitHub Packages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```kotlin' >> $GITHUB_STEP_SUMMARY
+          echo 'repositories {' >> $GITHUB_STEP_SUMMARY
+          echo '    maven {' >> $GITHUB_STEP_SUMMARY
+          echo '        url = uri("https://maven.pkg.github.com/melsardes/structus-kotlin")' >> $GITHUB_STEP_SUMMARY
+          echo '        credentials {' >> $GITHUB_STEP_SUMMARY
+          echo '            username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")' >> $GITHUB_STEP_SUMMARY
+          echo '            password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")' >> $GITHUB_STEP_SUMMARY
+          echo '        }' >> $GITHUB_STEP_SUMMARY
+          echo '    }' >> $GITHUB_STEP_SUMMARY
+          echo '}' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo 'dependencies {' >> $GITHUB_STEP_SUMMARY
+          echo "    implementation(\"com.melsardes.libraries:structus-kotlin:$VERSION\")" >> $GITHUB_STEP_SUMMARY
+          echo '}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
