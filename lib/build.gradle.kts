@@ -10,7 +10,7 @@
  * technology stack (Spring, Ktor, Micronaut, etc.).
  */
 
-import java.util.Properties
+import java.util.*
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
@@ -161,8 +161,8 @@ publishing {
             pom {
                 name.set("Structus - Kotlin Architecture Toolkit")
                 description.set("A pure Kotlin library for implementing Explicit Architecture with DDD, CQS, and EDA patterns")
-                url.set("https://github.com/MelSardes/structus-kotlin")
-                
+                url.set("https://github.com/structus-io/structus-kotlin")
+
                 licenses {
                     license {
                         name.set("MIT License")
@@ -179,19 +179,19 @@ publishing {
                 }
                 
                 scm {
-                    connection.set("scm:git:git://github.com/MelSardes/structus-kotlin.git")
-                    developerConnection.set("scm:git:ssh://github.com/MelSardes/structus-kotlin.git")
-                    url.set("https://github.com/MelSardes/structus-kotlin")
+                    connection.set("scm:git:git://github.com/structus-io/structus-kotlin.git")
+                    developerConnection.set("scm:git:ssh://github.com/structus-io/structus-kotlin.git")
+                    url.set("https://github.com/structus-io/structus-kotlin")
                 }
                 
                 issueManagement {
                     system.set("GitHub")
-                    url.set("https://github.com/MelSardes/structus-kotlin/issues")
+                    url.set("https://github.com/structus-io/structus-kotlin/issues")
                 }
                 
                 ciManagement {
                     system.set("GitHub Actions")
-                    url.set("https://github.com/MelSardes/structus-kotlin/actions")
+                    url.set("https://github.com/structus-io/structus-kotlin/actions")
                 }
             }
         }
@@ -200,7 +200,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/MelSardes/structus-kotlin")
+            url = uri("https://maven.pkg.github.com/structus-io/structus-kotlin")
             credentials {
                 username = System.getenv("GITHUB_ACTOR") 
                     ?: project.findProperty("gpr.user") as String?
